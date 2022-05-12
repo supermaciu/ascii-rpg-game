@@ -1,16 +1,14 @@
 #include "BoardObject.h"
+
 #include "Board.h"
+#include "Player.h"
 
-BoardObject::BoardObject(unsigned int x, unsigned int y, char c, Board* board) {
-	this->x = (x >= board->get_width() ? board->get_width()-1 : x);
-    this->y = (y >= board->get_height() ? board->get_height()-1 : y);
-
-    this->c = c;
-
-    this->board = board;
+BoardObject::BoardObject(unsigned int x, unsigned int y) {
+	this->x = x;
+    this->y = y;
 
     ID++;
-    id = ID;
+    this->id = ID;
 }
 
 void BoardObject::set_pos(int x, int y) {
@@ -25,13 +23,25 @@ void BoardObject::set_pos(int x, int y) {
 
 unsigned int BoardObject::ID = 0;
 
-Void::Void(unsigned int x, unsigned int y, Board* board)
-	: BoardObject(x, y, c, board) {
+Void::Void(unsigned int x, unsigned int y)
+	: BoardObject(x, y) {
     this->classname = "Void";
     this->moveInto = false;
     
 	this->c = ' ';
 	this->color = 0x08;
+}
 
-	this->board->addToBoard(this);
+Pickup::Pickup(unsigned int x, unsigned int y)
+	: BoardObject(x, y) {
+	this->classname = "Pickup";
+	this->moveInto = true;
+
+	this->c = '#';
+	this->color = 0x0f;
+}
+
+void Pickup::onEnterEvent(Player* player) {
+	player->set_health(player->get_max_health());
+	board->deleteFromBoard(this, true);
 }

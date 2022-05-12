@@ -4,13 +4,13 @@
 #include "Board.h"
 #include "Enemy.h"
 
-Player::Player(unsigned int x, unsigned int y, Board* board) : BoardObject(x, y, c, board) {
+Player::Player(unsigned int x, unsigned int y) : BoardObject(x, y) {
     this->classname = "Player";
     
     this->c = '@';
-    this->color = 0x02;
-    
-    this->board->addToBoard(this);
+    this->color = 0x0e;
+
+    setStats("Player", 1, 10, 2);
 }
 
 void Player::set_pos(int x, int y) {
@@ -45,67 +45,6 @@ void Player::movementHandler(char move) {
     } else if ((move == 's' || move == 80) && y+1<board->get_height()) {
         this->diry = 1;
         if (canMoveInto(x, y+1)) y += 1;
-    }
-
-    if (move == 'e') {
-         bool t = true;
-         for (int x = 0; x < board->get_width(); x++) {
-             for (int y = 0; y < board->get_height(); y++) {
-                 for (BoardObject *p_bo : board->getBoardObjects()) {
-                     if (x == p_bo->get_x() && y == p_bo->get_y()) {
-                         t = false;
-                     }
-                 }
-
-                 if (t) {
-                     Enemy* enemy = new Enemy(x, y, board);
-                 }
-                 t = true;
-             }
-         }
-    } else if (move == 'c') {
-        std::vector<BoardObject*> bos = board->getBoardObjects();
-
-        if (!bos.empty()) {
-            for (BoardObject* bo : bos) {
-                if (bo->get_classname() == "Enemy" || bo->get_classname() == "Teleport" && (bo == t1 || bo == t2)) {
-                    board->deleteFromBoard(bo, true);
-                }
-            }
-        }
-    } else if (move == 't') {
-        if (!this->t1) {
-            int x, y;
-
-            std::cout << std::endl << "t1 (teleports to t2):" << std::endl;
-            std::cout << "x: ";
-            std::cin >> x;
-            std::cout << "y: ";
-            std::cin >> y;
-
-            if (this->t1) {
-                this->board->deleteFromBoard(t1, true);
-            }
-
-            this->t1 = new Teleport(x, y, this->board);
-        } else if (this->t1) {
-            if (this->t2) {
-                t2->get_board()->deleteFromBoard(t2, true);
-            }
-
-            int x, y;
-
-            std::cout << std::endl << "t2 (teleports to t1):" << std::endl;
-            std::cout << "dx: ";
-            std::cin >> x;
-            std::cout << "dy: ";
-            std::cin >> y;
-
-            this->t2 = new Teleport(x, y, this->board);
-            t2->setDestination(t1->get_x(), t1->get_y(), t1->get_board(), true);
-
-            t1->setDestination(t2->get_x(), t2->get_y(), t2->get_board(), true);
-        }
     }
 }
 
@@ -168,6 +107,6 @@ void Player::eventsHandler(char move) {
     if (board != nullptr) {
         movementHandler(move);
         checkOnEnterEvents();
-        checkOnTouchEvents();
+        checkOnTouchEvents(); 
     }
 }

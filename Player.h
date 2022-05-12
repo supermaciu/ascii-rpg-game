@@ -11,9 +11,6 @@ class Player : public BoardObject {
     public:
         char move;
         int kill_count = 0;
-
-        Teleport* t1 = nullptr;
-        Teleport* t2 = nullptr;
     private:
         int dirx = 0;
         int diry = 0;
@@ -22,9 +19,9 @@ class Player : public BoardObject {
         int prev_y;
         char prev_move;
     public:
-        Player(unsigned int x, unsigned int y, Board* board);
+        Player(unsigned int x, unsigned int y);
 
-		//BoardObject functions
+		//Overridden BoardObject functions
 		void set_pos(int x, int y);
 		
 		//Player functions

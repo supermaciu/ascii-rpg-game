@@ -15,7 +15,7 @@ class Teleport : public BoardObject {
         bool tp_set = false;
         bool dynamic = false;
 	public:
-        Teleport(unsigned int x, unsigned int y, Board* board);
+        Teleport(unsigned int x, unsigned int y);
 
         ~Teleport();
 
@@ -23,6 +23,8 @@ class Teleport : public BoardObject {
         
         void setDestination(unsigned int x2, unsigned int y2, Board* board2, bool dynamic=false);
         void unsetDestination();
+
+        Board* get_dest_board() { return dest_board; }
 
 		void onTouchEvent(Player* player) override;
 };

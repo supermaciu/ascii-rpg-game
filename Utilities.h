@@ -54,3 +54,14 @@ inline int get_console_height() {
 
 	return console_height;
 }
+
+inline std::string get_current_time() {
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
+
+    tstruct = *localtime(&now);
+    strftime(buf, sizeof(buf), "%H:%M:%S", &tstruct);
+
+    return buf;
+}

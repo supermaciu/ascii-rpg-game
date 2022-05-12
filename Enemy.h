@@ -7,7 +7,12 @@ class Board;
 
 class Enemy : public BoardObject {
     public:
-        Enemy(unsigned int x, unsigned int y, Board* board);
+        Enemy(unsigned int x, unsigned int y);
         
-        void onEnterEvent(Player* player) override;
+        void onTouchEvent(Player* player) override;
+};
+
+class Spider : public Enemy {
+    public:
+        Spider(unsigned int x, unsigned int y);
 };

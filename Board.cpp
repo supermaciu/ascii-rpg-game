@@ -1,54 +1,42 @@
 #include "Board.h"
+
+#include "Game.h"
 #include "BoardObject.h"
 
 #include "Utilities.h"
 
-Board::Board(unsigned int width, unsigned int height, Game* game) {
+Board::Board(unsigned int width, unsigned int height) {
     this->width = (width < BOARD_LIMIT_MIN) ? BOARD_LIMIT_MIN : ((width > BOARD_LIMIT_MAX) ? BOARD_LIMIT_MAX : width);
     this->height = (height < BOARD_LIMIT_MIN) ? BOARD_LIMIT_MIN : ((height > BOARD_LIMIT_MAX) ? BOARD_LIMIT_MAX : height);
 
-    this->game = game;
-    this->game->addBoard(this);
+    Game::addBoard(this);
+
+    ID++;
+    this->id = ID;
 }
 
-Board::Board(const std::string& name, unsigned int width, unsigned int height, Game* game) {
+Board::Board(const std::string& name, unsigned int width, unsigned int height) {
     this->name = name;
 
     this->width = (width < BOARD_LIMIT_MIN) ? BOARD_LIMIT_MIN : ((width > BOARD_LIMIT_MAX) ? BOARD_LIMIT_MAX : width);
     this->height = (height < BOARD_LIMIT_MIN) ? BOARD_LIMIT_MIN : ((height > BOARD_LIMIT_MAX) ? BOARD_LIMIT_MAX : height);
 
-    this->game = game;
-    this->game->addBoard(this);
+    Game::addBoard(this);
+
+    ID++;
+    this->id = ID;
 }
 
+unsigned int Board::ID = 0;
+
 void Board::render() {
-    // bool render_board_objects = false;
+    for (int x = 0; x < width; x++) {
+        for (int y = 0; y < height; y++) {
+            board[x][y] = '_';
 
-    // if (!this->board_objects.empty()) {
-    //     render_board_objects = true;
-    // }
-
-    // for (int x = 0; x < this->width; x++) {
-    //     for (int y = 0; y < this->height; y++) {
-    //         this->board[x][y] = '_';
-
-    //         if (render_board_objects) {
-    //             for (BoardObject *p_bo : this->board_objects) {
-    //                 if (p_bo->get_x() == x && p_bo->get_y() == y && this->board[x][y] != '@') { // more constants -> Utilities.h
-    //                     this->board[x][y] = p_bo->get_char();
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-
-    for (int x = 0; x < this->width; x++) {
-        for (int y = 0; y < this->height; y++) {
-            this->board[x][y] = '_';
-
-            for (BoardObject *p_bo : this->board_objects) {
-                if (p_bo->get_x() == x && p_bo->get_y() == y && this->board[x][y] != '@') { // more constants -> Utilities.h
-                    this->board[x][y] = p_bo->get_char();
+            for (BoardObject *bo : board_objects) {
+                if (bo->get_x() == x && bo->get_y() == y && board[x][y] != '@') { // more constants -> Utilities.h
+                    board[x][y] = bo->get_char();
                 }
             }
         }
@@ -56,22 +44,25 @@ void Board::render() {
 }
 
 void Board::draw() {
-    for (int x = 0; x < this->width; x++) {
-        for (int y = 0; y < this->height; y++) {
+    setCursor((get_console_width()/2 - width), (get_console_height()/2 - height/2)-1);
+    std::cout << name;
+
+    for (int x = 0; x < width; x++) {
+        for (int y = 0; y < height; y++) {
             setCursor((get_console_width()/2 - width) + 2 * x, (get_console_height()/2 - height/2) + y);
 
-            BoardObject* bo = this->getBoardObjectByCoords(x, y);
+            BoardObject* bo = getBoardObjectByCoords(x, y);
             if (bo != nullptr) {
-                SetConsoleTextAttribute(this->game->get_handle(), bo->get_color());
+                SetConsoleTextAttribute(Game::get_handle(), bo->get_color());
             } else {
-                SetConsoleTextAttribute(this->game->get_handle(), 0x07);
+                SetConsoleTextAttribute(Game::get_handle(), board_color);
             }
 			    
-            std::cout << this->board[x][y];
+            std::cout << board[x][y];
         }
     }
 
-    SetConsoleTextAttribute(this->game->get_handle(), 0x07);
+    SetConsoleTextAttribute(Game::get_handle(), 0x07);
 }
 
 bool Board::hasBoardObjects() {
@@ -80,7 +71,7 @@ bool Board::hasBoardObjects() {
 
 void Board::deleteFromBoard(BoardObject* board_object, bool delete_object_in_memory) {
     if (board_object != nullptr) {
-        this->board_objects.erase(std::remove(this->board_objects.begin(), this->board_objects.end(), board_object), this->board_objects.end());
+        board_objects.erase(std::remove(this->board_objects.begin(), this->board_objects.end(), board_object), this->board_objects.end());
         board_object->set_board(nullptr);
 
         if (delete_object_in_memory) {
@@ -92,28 +83,27 @@ void Board::deleteFromBoard(BoardObject* board_object, bool delete_object_in_mem
 
 void Board::addToBoard(BoardObject* board_object) {
     if (board_object != nullptr) {
-        for (BoardObject *p_bo : this->board_objects) {
-            if (board_object->get_board() == p_bo->get_board() && board_object->get_x() == p_bo->get_x() && board_object->get_y() == p_bo->get_y()) {
-                deleteFromBoard(p_bo, false);
-                p_bo = board_object;
+        for (BoardObject *bo : board_objects) {
+            if (board_object->get_board() == bo->get_board() && board_object->get_x() == bo->get_x() && board_object->get_y() == bo->get_y()) {
+                deleteFromBoard(bo, false);
+                bo = board_object;
             }
         }
     }
 
-    this->board_objects.push_back(board_object);
+    board_objects.push_back(board_object);
 
-    board_object->game = this->game;
-    board_object->board = this;
+    board_object->set_board(this);
 }
 
 std::vector<BoardObject*> Board::getBoardObjects() {
-    return this->board_objects;
+    return board_objects;
 }
 
 BoardObject* Board::getBoardObjectById(int id) {
-    for (BoardObject *p_bo : this->board_objects) {
-        if (p_bo->get_id() == id) {
-            return p_bo;
+    for (BoardObject *bo : board_objects) {
+        if (bo->get_id() == id) {
+            return bo;
         }
     }
 
@@ -123,9 +113,9 @@ BoardObject* Board::getBoardObjectById(int id) {
 std::vector<BoardObject*> Board::getBoardObjectsByClassname(std::string classname) {
     std::vector<BoardObject*> bos = {};
 
-    for (BoardObject *p_bo : this->board_objects) {
-        if (p_bo->get_classname() == classname) {
-            bos.push_back(p_bo);
+    for (BoardObject *bo : board_objects) {
+        if (bo->get_classname() == classname) {
+            bos.push_back(bo);
         }
     }
 
@@ -133,9 +123,9 @@ std::vector<BoardObject*> Board::getBoardObjectsByClassname(std::string classnam
 }
 
 BoardObject* Board::getBoardObjectByCoords(int x, int y) {
-	for (BoardObject *p_bo : this->board_objects) {
-        if (p_bo->get_x() == x && p_bo->get_y() == y) {
-            return p_bo;
+	for (BoardObject *bo : board_objects) {
+        if (bo->get_x() == x && bo->get_y() == y) {
+            return bo;
         }
     }
     

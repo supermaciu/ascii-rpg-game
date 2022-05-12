@@ -9,60 +9,61 @@
 #include <string>
 #include <cwchar>
 
-Game::Game(const std::string& game_name) {
-    this->game_name = game_name;
-
-    std::string str(game_name);
-    SetConsoleTitle(str.c_str());
-}
+Game Game::instance;
 
 Game::~Game() {
-    system("cls");
-    this->setConsoleBufferSize(get_console_width(), 500);
+    if (debug_mode) {
+        system("cls");
+        setConsoleBufferSize(get_console_width(), 500);
 
-    for (Board* b : this->boards) {
-        if (b->hasBoardObjects()) {
-            std::cout << b->get_name() << ":" << std::endl;
+        for (Board* b : boards) {
+            if (b->hasBoardObjects()) {
+                std::cout << b->get_name() << ":" << std::endl;
 
-            for (BoardObject* bo : b->getBoardObjects()) {
-                std::cout << " Deleting (" << bo->get_id() << ") ";
-                
-                SetConsoleTextAttribute(this->handle, bo->get_color());
-                std::cout << bo->get_classname();
-                SetConsoleTextAttribute(this->handle, 0x07);
-                
-                std::cout << " from " 
-					<< bo->get_board()->get_name() << " with address " << bo << std::endl;
-                this->current_board->deleteFromBoard(bo, true); // has delete in it
+                for (BoardObject* bo : b->getBoardObjects()) {
+                    std::cout << "[" << get_current_time() << "]" << " Deleting (" << bo->get_id() << ") ";
+                    
+                    SetConsoleTextAttribute(handle, bo->get_color());
+                    std::cout << bo->get_classname();
+                    SetConsoleTextAttribute(handle, 0x07);
+                    
+                    std::cout << " from " 
+                        << bo->get_board()->get_name() << " with address " << bo << std::endl;
+                    current_board->deleteFromBoard(bo, true); // has delete in it
+                }
             }
         }
-    }
-    
-    std::cout << std::endl << "boards:" << std::endl;
-    
-    for (Board* b : this->boards) {
-    	std::cout << "Deleting (" << b << ") " << b->get_name() << std::endl;
-        delete b;
-    }
+        
+        std::cout << std::endl << "Boards:" << std::endl;
+        
+        for (Board* b : boards) {
+            std::cout << "[" << get_current_time() << "]"  << " Deleting (" << b << ") " << b->get_name() << std::endl;
+            delete b;
+        }
 
-	std::cout << std::endl << std::endl << "Done!" << std::endl;
+        std::cout << std::endl << std::endl << "Done!" << std::endl;
 
-    system("pause");
+        system("pause");
+        exit(0);
+    }
 }
 
-void Game::setTitle(const std::string& game_name) {
+void Game::IsetTitle(const std::string& game_name) {
     std::string str(game_name);
     SetConsoleTitle(str.c_str());
 }
 
-void Game::setCursorVisibility(bool show_cursor) {
-    GetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &this->consoleCursorInfo);
-    this->consoleCursorInfo.bVisible = show_cursor;
-    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &this->consoleCursorInfo);
+void Game::IsetCursorVisibility(bool show_cursor) {
+    handle = GetStdHandle(STD_OUTPUT_HANDLE);
+    GetConsoleCursorInfo(handle, &consoleCursorInfo);
+
+    consoleCursorInfo.bVisible = show_cursor;
+    consoleCursorInfo.dwSize = 100;
+    SetConsoleCursorInfo(handle, &consoleCursorInfo);
 }
 
-void Game::resizeWindow(int width, int height) {
-    this->consoleWindow = GetConsoleWindow();
+void Game::IresizeWindow(int width, int height) {
+    consoleWindow = GetConsoleWindow();
 	RECT console_rect;
 
 	GetWindowRect(consoleWindow, &console_rect);
@@ -70,8 +71,8 @@ void Game::resizeWindow(int width, int height) {
 	MoveWindow(consoleWindow, console_rect.left, console_rect.top, width, height, TRUE);
 }
 
-void Game::moveWindow(int x, int y) {
-    this->consoleWindow = GetConsoleWindow();
+void Game::ImoveWindow(int x, int y) {
+    consoleWindow = GetConsoleWindow();
     RECT rectClient, rectWindow;
     
     GetClientRect(consoleWindow, &rectClient);
@@ -80,8 +81,8 @@ void Game::moveWindow(int x, int y) {
     MoveWindow(consoleWindow, x, y, rectClient.right - rectClient.left, rectClient.bottom - rectClient.top, TRUE);
 }
 
-void Game::moveWindowCenter() {
-    this->consoleWindow = GetConsoleWindow();
+void Game::ImoveWindowCenter() {
+    consoleWindow = GetConsoleWindow();
     RECT rectClient, rectWindow;
     
     GetClientRect(consoleWindow, &rectClient);
@@ -100,70 +101,69 @@ void Game::moveWindowCenter() {
     //MoveWindow(consoleWindow, posx, posy, (rectClient.right - rectClient.left) + sizex, (rectClient.bottom - rectClient.top), TRUE);
 }
 
-void Game::setConsoleBufferSize(int x, int y) {
-	this->handle = GetStdHandle(STD_OUTPUT_HANDLE);
+void Game::IsetConsoleBufferSize(int x, int y) {
+	handle = GetStdHandle(STD_OUTPUT_HANDLE);
 	
 	if (x <= 0 or y <= 0) {
-		this->coord.X = get_console_width();
-    	this->coord.Y = get_console_height();
+		coord.X = get_console_width();
+    	coord.Y = get_console_height();
 	} else {
-		this->coord.X = x;
-    	this->coord.Y = y;
+		coord.X = x;
+    	coord.Y = y;
 	}
     
-    SetConsoleScreenBufferSize(this->handle, this->coord); // deletes scrollbar / shortens the buffer
+    SetConsoleScreenBufferSize(handle, coord); // deletes scrollbar / shortens the buffer
 }
 
-void Game::maxemizeWindow(bool maxemize) {
+void Game::ImaxemizeWindow(bool maxemize) {
 	if (maxemize) {
-		this->consoleWindow = GetConsoleWindow();
+		consoleWindow = GetConsoleWindow();
 		ShowWindow(consoleWindow, SW_MAXIMIZE); // maxemizes console window
 	} else {
-		this->consoleWindow = GetConsoleWindow();
+		consoleWindow = GetConsoleWindow();
 		ShowWindow(consoleWindow, SW_NORMAL); // maxemizes console window
 	}
 }
 
-void Game::resizeableWindow(bool can_resize) {
+void Game::IresizeableWindow(bool can_resize) {
 	if (!can_resize) {
-		this->consoleWindow = GetConsoleWindow();
-	    SetWindowLong(this->consoleWindow, GWL_STYLE,
-		GetWindowLong(this->consoleWindow, GWL_STYLE) & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX); // makes window non resizable
+		consoleWindow = GetConsoleWindow();
+	    SetWindowLong(consoleWindow, GWL_STYLE,
+		GetWindowLong(consoleWindow, GWL_STYLE) & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX); // makes window non resizable
 	} else {
-		this->consoleWindow = GetConsoleWindow();
-	    SetWindowLong(this->consoleWindow, GWL_STYLE,
-		GetWindowLong(this->consoleWindow, GWL_STYLE)); // makes window resizable
+		consoleWindow = GetConsoleWindow();
+	    SetWindowLong(consoleWindow, GWL_STYLE,
+		GetWindowLong(consoleWindow, GWL_STYLE)); // makes window resizable
 	}
 }
 
-void Game::disableInput(bool disable) {
-	this->consoleWindow = GetConsoleWindow();
+void Game::IdisableInput(bool disable) {
+	consoleWindow = GetConsoleWindow();
 	
 	if (disable) {
-		EnableWindow(this->consoleWindow, false);
+		EnableWindow(consoleWindow, false);
 	} else {
-		EnableWindow(this->consoleWindow, true);
+		EnableWindow(consoleWindow, true);
 	}
 }
 
-void Game::set_current_board(Board *board) {
-    if (board == this->current_board) {
+void Game::Iset_current_board(Board *board) {
+    if (board == current_board) {
         return;
     }
 
-    this->current_board = board;
-    this->current_board->game = this;
-    // add board to boards?
+    current_board = board;
 }
 
-void Game::showBoard() {
-    this->current_board->render();
-
-    system("cls"); // clipping
-    this->current_board->draw();
+void Game::IshowBoard() {
+    current_board->render();
+    system("cls");
+    current_board->draw();
 }
 
-void Game::debug(bool debug_mode, Player* player) {
+void Game::Idebug(Player* player) {
+    if (!debug_mode) return;
+
     int dx = 4, dy = 3;
 
     if (debug_mode) {
@@ -171,7 +171,7 @@ void Game::debug(bool debug_mode, Player* player) {
         std::cout << player->get_classname() << ": ";
 
         setCursor(dx+1, dy+1);
-        std::cout << "Board: " << this->current_board->get_name();
+        std::cout << "Board: " << current_board->get_name();
 
         setCursor(dx+1, dy+2);
         std::cout << "x, y: " << player->get_x() << ", " << player->get_y();
@@ -181,33 +181,26 @@ void Game::debug(bool debug_mode, Player* player) {
 
         dy += 5;
         
-        int s = (this->current_board->getBoardObjects().size() >= 5) ? 5 : this->current_board->getBoardObjects().size();
+        int s = (current_board->getBoardObjects().size() >= 5) ? 5 : current_board->getBoardObjects().size();
         for (int i = 0; i != s; i++) {
             setCursor(dx, dy+i*4);
-            std::cout << this->current_board->getBoardObjects()[i]->get_id() << " : "
-                << this->current_board->getBoardObjects()[i]->get_classname() << ": ";
+            std::cout << current_board->getBoardObjects()[i]->get_id() << " : "
+                << current_board->getBoardObjects()[i]->get_classname() << ": ";
 
             setCursor(dx+1, dy+i*4+1);
-            std::cout << "Board: " << this->current_board->getBoardObjects()[i]->get_board()->get_name();
+            std::cout << "Board: " << current_board->getBoardObjects()[i]->get_board()->get_name();
 
             setCursor(dx+1, dy+i*4+2);
-            std::cout << "x: " << this->current_board->getBoardObjects()[i]->get_x();
+            std::cout << "x: " << current_board->getBoardObjects()[i]->get_x();
 
             setCursor(dx+1, dy+i*4+3);
-            std::cout << "y: " << this->current_board->getBoardObjects()[i]->get_y();
+            std::cout << "y: " << current_board->getBoardObjects()[i]->get_y();
         }
 
         dy -= 5;
 
-//        setCursor(get_console_width()/2+20,get_console_height()/2-1);
-//        std::cout << "Info by id (1): " << this->current_board->getBoardObjectById(1)->get_x()
-//            << " " << this->current_board->getBoardObjectById(1)->get_y();
-//
-//        setCursor(get_console_width()/2+20,get_console_height()/2);
-//        std::cout << "Info by classname (Enemy count): " << this->current_board->getBoardObjectsByClassname("Enemy").size();
-
         setCursor(1, 1);
-        std::cout << "current board: " << this->current_board->get_name();
+        std::cout << "current board: (" << current_board->get_id() << ") " << current_board->get_name();
 
         setCursor(1, get_console_height()-1);
         std::cout << "prev_move: " << player->get_prev_move() << " - " << int(player->get_prev_move());
@@ -221,80 +214,48 @@ void Game::debug(bool debug_mode, Player* player) {
         setCursor(22, get_console_height());
         std::cout << "dirx: " << player->get_dirx() << " diry: " << player->get_diry();
 
-		int midx = get_console_width()/2;
-		int midy = get_console_height()/2;
-		
-		BoardObject* bo_x1 = this->current_board->getBoardObjectByCoords(player->get_x()-1, player->get_y());
-		BoardObject* bo_x2 = this->current_board->getBoardObjectByCoords(player->get_x()+1, player->get_y());
-		BoardObject* bo_y1 = this->current_board->getBoardObjectByCoords(player->get_x(), player->get_y()-1);
-		BoardObject* bo_y2 = this->current_board->getBoardObjectByCoords(player->get_x(), player->get_y()+1);
+        std::vector<std::vector<int> > infoPos = {
+            {(get_console_width()/2-20-current_board->get_width()*2), (get_console_height()/2)},
+            {(get_console_width()/2+current_board->get_width()*2), (get_console_height()/2)},
+            {(get_console_width()/2-5), (get_console_height()/2-current_board->get_height())},
+            {(get_console_width()/2-5), (get_console_height()/2+current_board->get_height())}
+        };
 
-		if (bo_x1 != nullptr) {
-			setCursor(midx-14-this->current_board->get_width()*2, midy);
-			std::cout << bo_x1->get_id() << " : "
-                << bo_x1->get_classname() << ": ";
+        std::vector<BoardObject*> playerSurrounds = {
+            current_board->getBoardObjectByCoords(player->get_x()-1, player->get_y()),
+            current_board->getBoardObjectByCoords(player->get_x()+1, player->get_y()),
+            current_board->getBoardObjectByCoords(player->get_x(), player->get_y()-1),
+            current_board->getBoardObjectByCoords(player->get_x(), player->get_y()+1)
+        };
+
+        for (int i = 0; i < playerSurrounds.size(); i++) {
+            BoardObject* bo = playerSurrounds[i];
+
+            if (bo == nullptr) continue;
+
+            setCursor(infoPos[i][0], infoPos[i][1]);
+            std::cout << "[" << bo->get_id() << "]" << " : "
+                << bo->get_name() << " (" << bo->get_classname() << ")" << ": ";
                 
-            setCursor(midx-14-this->current_board->get_width()*2, midy+1);
-			std::cout << "c: " << bo_x1->get_char();
+            setCursor(infoPos[i][0], infoPos[i][1]+1);
+			std::cout << "c: " << bo->get_char();
 			
-			setCursor(midx-14-this->current_board->get_width()*2, midy+2);
-			std::cout << "get_moveInto: " << bo_x1->get_moveInto();
+			setCursor(infoPos[i][0], infoPos[i][1]+2);
+			std::cout << "get_moveInto: " << bo->get_moveInto();
 
-            setCursor(midx-14-this->current_board->get_width()*2, midy+3);
-			std::cout << "get_interactWith: " << bo_x1->get_interactWith();
-		} 
-		if (bo_x2 != nullptr) {
-			setCursor(midx-5+this->current_board->get_width()*2, midy);
-			std::cout << bo_x2->get_id() << " : "
-                << bo_x2->get_classname() << ": ";
-            
-            setCursor(midx-5+this->current_board->get_width()*2, midy+1);
-			std::cout << "c: " << bo_x2->get_char();
-			
-			setCursor(midx-5+this->current_board->get_width()*2, midy+2);
-			std::cout << "get_moveInto: " << bo_x2->get_moveInto();
-
-            setCursor(midx-5+this->current_board->get_width()*2, midy+3);
-			std::cout << "get_interactWith: " << bo_x2->get_interactWith();
-		}
-		if (bo_y1 != nullptr) {
-			setCursor(midx-5, midy-this->current_board->get_height());
-			std::cout << bo_y1->get_id() << " : "
-                << bo_y1->get_classname() << ": ";
-            
-            setCursor(midx-5, midy-this->current_board->get_height()+1);
-			std::cout << "c: " << bo_y1->get_char();
-			
-			setCursor(midx-5, midy-this->current_board->get_height()+2);
-			std::cout << "get_moveInto: " << bo_y1->get_moveInto();
-
-            setCursor(midx-5, midy-this->current_board->get_height()+3);
-			std::cout << "get_interactWith: " << bo_y1->get_interactWith();
-		}
-		if (bo_y2 != nullptr) {
-			setCursor(midx-5, midy+this->current_board->get_height());
-			std::cout << bo_y2->get_id() << " : "
-                << bo_y2->get_classname() << ": ";
-                
-            setCursor(midx-5, midy+this->current_board->get_height()+1);
-			std::cout << "c: " << bo_y2->get_char();
-			
-			setCursor(midx-5, midy+this->current_board->get_height()+2);
-			std::cout << "get_moveInto: " << bo_y2->get_moveInto();
-
-            setCursor(midx-5, midy+this->current_board->get_height()+3);
-			std::cout << "get_interactWith: " << bo_y2->get_interactWith();
-		}
+            setCursor(infoPos[i][0], infoPos[i][1]+3);
+			std::cout << "get_interactWith: " << bo->get_interactWith();
+        }
     }
 }
 
-std::vector<Board*> Game::getAllBoards() {
-	return this->boards;
+std::vector<Board*> Game::IgetAllBoards() {
+	return boards;
 }
 
-Board* Game::getBoardByName(const std::string& name) {
-    for (Board* board : this->getAllBoards()) {
-        if (board->get_name() == name) {
+Board* Game::IgetBoardById(int id) {
+    for (Board* board : boards) {
+        if (board->get_id() == id) {
             return board;
         }
     }
@@ -302,26 +263,31 @@ Board* Game::getBoardByName(const std::string& name) {
     return nullptr;
 }
 
-std::vector<BoardObject*> Game::getAllBoardObjects() {
+std::vector<BoardObject*> Game::IgetAllBoardObjects() {
     std::vector<BoardObject*> bos = {};
 
-    // for (Board* b : this->getAllBoards()) {
-    //     bos.insert(b->getBoardObjects().begin(), b->getBoardObjects().begin(), b->getBoardObjects().end());
-    // }
-
-    for (Board* board : this->getAllBoards()) {
+    for (Board* board : getAllBoards()) {
         for (BoardObject* bo : board->getBoardObjects()) {
             bos.push_back(bo);
         }
     }
 
-    // for (int i = 0; i < bos.size()-1; i++) {
-    //     for (int j = 0; j < bos.size()-1; j++) {
-    //         if (bos[j]->get_id() > bos[j+1]->get_id()) {
-    //             std::swap(bos[j], bos[j+1]);
-    //         }
-    //     }
-    // }
-
     return bos;
+}
+
+void Game::ImenuExitGame() {
+    system("cls");
+    std::string str = "Are you sure? (y/n)";
+    setCursor(get_console_width()/2-str.size()/2, get_console_height()/2);
+    
+    for (char c : str) {
+        std::cout << c;
+        Sleep(10);
+    }
+    
+    char move = getch();
+    
+    if (move == 'e' || move == 'E' || move == 'y' || move == 'Y' || move == 13) {
+        exit(0);
+    }
 }
